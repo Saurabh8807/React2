@@ -1,16 +1,63 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Header from "./Header";
+import { checkValidData } from "../utils/validate";
+import { createUserWithEmailAndPassword,signInWithEmailAndPassword  } from "firebase/auth";
+import { auth } from "../utils/firebase";
+import { useNavigate } from "react-router-dom";
 
 const Login = () => {
+  const navigate = useNavigate()
   const [isSignInForm, setIsSignInForm] = useState(true);
+  const [errormessage, setErrormessage] = useState("");
+  const email = useRef(null);
+  const password = useRef(null);
 
   const toggleSignInForm = () => {
     setIsSignInForm(!isSignInForm);
   };
-  const handleButtonClick = (e)=>{
-    console.log(e)
-    e.preventDefault()
-  }
+
+  const handleButtonClick = (e) => {
+    e.preventDefault();
+    const message = checkValidData(email.current.value, password.current.value);
+    setErrormessage(message);
+
+    if (message) return;
+
+    if (!isSignInForm) {
+      createUserWithEmailAndPassword(
+        auth,
+        email.current.value,
+        password.current.value
+      )
+        .then((userCredential) => {
+          navigate("/browse")
+          const user = userCredential.user;
+          console.log(user);
+        })
+        .catch((error) => {
+          const errorCode = error.code;
+          const errorMessage = error.message;
+          setErrormessage(errorCode + "-" + errorMessage);
+        });
+    }else{
+      signInWithEmailAndPassword(auth, email.current.value, password.current.value)
+      .then((userCredential) => {
+    console.log("SignedIn...")
+    navigate("/browse")
+    const user = userCredential.user;
+    console.log(user)
+  })
+  .catch((error) => {
+    const errorCode = error.code;
+    const errorMessage = error.message;
+    console.log(error)
+    setErrormessage(errorMessage)
+  });
+    }
+
+    console.log(email);
+    console.log(password);
+  };
   return (
     <div>
       <Header />
@@ -33,16 +80,24 @@ const Login = () => {
           />
         )}
         <input
-          type="text"
+          ref={email}
+          type="email"
           placeholder="Email Address"
           className="p-4 my-4 w-full bg-gray-700"
         />
         <input
+          ref={password}
           type="password"
           placeholder="Password"
           className="p-4 my-4 w-full bg-gray-700"
         />
-        <button onClick={handleButtonClick} className="p-4 my-6 bg-red-700 w-full rounded-lg">
+        {errormessage && (
+          <h3 className=" text-red-600 text-center">{errormessage}</h3>
+        )}
+        <button
+          onClick={handleButtonClick}
+          className="p-4 my-6 bg-red-700 w-full rounded-lg"
+        >
           {isSignInForm ? "Sign In" : "Sign Up"}
         </button>
         <p className="py-4 cursor-pointer" onClick={toggleSignInForm}>
